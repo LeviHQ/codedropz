@@ -1,5 +1,5 @@
 import { LogOut, ShieldCheck, Trash2, Zap, KeyRound, Smartphone, Palette, Code2 } from "lucide-react";
-import { SectionHeader } from "./WhyCodeDropz";
+import { SectionHeader } from "./WhyCodeDrop";
 
 const FEATURES = [
   { icon: LogOut, title: "No Login", desc: "Nothing to sign up for. Open and share in seconds." },

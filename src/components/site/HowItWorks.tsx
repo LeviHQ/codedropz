@@ -1,5 +1,5 @@
 import { Clipboard, Sparkles, Send, KeyRound, Download, Trash2 } from "lucide-react";
-import { SectionHeader } from "./WhyCodeDropz";
+import { SectionHeader } from "./WhyCodeDrop";
 
 const STEPS = [
   { icon: Clipboard, title: "Paste your code", desc: "Drop any snippet or text into the editor." },

@@ -1,5 +1,5 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { SectionHeader } from "./WhyCodeDropz";
+import { SectionHeader } from "./WhyCodeDrop";
 
 const QA = [
   { q: "Do I need an account?", a: "No. CodeDropz is designed to work without signup, login, or email — open the app and start sharing." },

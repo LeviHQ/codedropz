@@ -1,5 +1,5 @@
 import { GraduationCap, Code2, Bug, BookOpen, FlaskConical, MessagesSquare, Briefcase, Users } from "lucide-react";
-import { SectionHeader } from "./WhyCodeDropz";
+import { SectionHeader } from "./WhyCodeDrop";
 
 const WHO = [
   { icon: GraduationCap, label: "Students", copy: "Hand in snippets without email chains." },
