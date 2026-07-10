@@ -1,8 +1,8 @@
 // Mock in-memory + localStorage share store. Interface designed so a
 // real backend can swap in without changing callers.
 
-export type ExpirationMinutes = 10 | 30 | 60;
-export type AccessLimit = 1 | 5 | 10;
+export type ExpirationMinutes = number;
+export type AccessLimit = number;
 
 export type Share = {
   code: string;

@@ -7,22 +7,21 @@ import { toast } from "sonner";
 import {
   createShare,
   retrieveShare,
-  type AccessLimit,
-  type ExpirationMinutes,
   type RetrieveResult,
 } from "@/lib/share-store";
 import { cn } from "@/lib/utils";
 
-const ACCESS: { value: AccessLimit; label: string }[] = [
+const ACCESS_OPTIONS = [
   { value: 1, label: "First Access" },
   { value: 5, label: "5 Accesses" },
   { value: 10, label: "10 Accesses" },
-];
-const EXPIRY: { value: ExpirationMinutes; label: string }[] = [
+] as const;
+
+const EXPIRY_OPTIONS = [
   { value: 10, label: "10 Minutes" },
   { value: 30, label: "30 Minutes" },
   { value: 60, label: "1 Hour" },
-];
+] as const;
 
 export function ProductApp() {
   return (
@@ -64,8 +63,12 @@ export function ProductApp() {
 
 function SendPanel() {
   const [content, setContent] = useState("");
-  const [access, setAccess] = useState<AccessLimit>(1);
-  const [expiry, setExpiry] = useState<ExpirationMinutes>(10);
+  const [access, setAccess] = useState<number>(1);
+  const [expiry, setExpiry] = useState<number>(10);
+  const [accessCustom, setAccessCustom] = useState<number>(20);
+  const [expiryCustom, setExpiryCustom] = useState<number>(120);
+  const [accessCustomActive, setAccessCustomActive] = useState(false);
+  const [expiryCustomActive, setExpiryCustomActive] = useState(false);
   const [generated, setGenerated] = useState<{ code: string; expiresAt: number } | null>(null);
   const [remaining, setRemaining] = useState<string>("");
 
@@ -83,9 +86,12 @@ function SendPanel() {
     return () => clearInterval(id);
   }, [generated]);
 
+  const finalAccess = accessCustomActive ? accessCustom : access;
+  const finalExpiry = expiryCustomActive ? expiryCustom : expiry;
+
   const handleGenerate = () => {
     if (!content.trim()) { toast.error("Paste some code or text first."); return; }
-    const s = createShare({ content, expirationMinutes: expiry, accessLimit: access });
+    const s = createShare({ content, expirationMinutes: finalExpiry, accessLimit: finalAccess });
     setGenerated({ code: s.code, expiresAt: s.expiresAt });
     toast.success("Share code generated");
   };
@@ -118,24 +124,56 @@ function SendPanel() {
       <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
         <div>
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Delete after</div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {ACCESS.map((a) => (
-              <SegBtn key={a.value} active={access === a.value} onClick={() => setAccess(a.value)}>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {ACCESS_OPTIONS.map((a) => (
+              <SegBtn key={a.value} active={!accessCustomActive && access === a.value} onClick={() => { setAccess(a.value); setAccessCustomActive(false); }}>
                 {a.label}
               </SegBtn>
             ))}
+            <SegBtn active={accessCustomActive} onClick={() => setAccessCustomActive(true)}>
+              Custom
+            </SegBtn>
           </div>
+          {accessCustomActive && (
+            <div className="mt-2">
+              <Input
+                type="number"
+                min={1}
+                max={999}
+                value={accessCustom}
+                onChange={(e) => setAccessCustom(Math.max(1, Math.min(999, Number(e.target.value))))}
+                className="h-10 rounded-xl font-mono text-center"
+                placeholder="Access count"
+              />
+            </div>
+          )}
         </div>
 
         <div className="mt-5">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Expiration</div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {EXPIRY.map((a) => (
-              <SegBtn key={a.value} active={expiry === a.value} onClick={() => setExpiry(a.value)}>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {EXPIRY_OPTIONS.map((a) => (
+              <SegBtn key={a.value} active={!expiryCustomActive && expiry === a.value} onClick={() => { setExpiry(a.value); setExpiryCustomActive(false); }}>
                 {a.label}
               </SegBtn>
             ))}
+            <SegBtn active={expiryCustomActive} onClick={() => setExpiryCustomActive(true)}>
+              Custom
+            </SegBtn>
           </div>
+          {expiryCustomActive && (
+            <div className="mt-2">
+              <Input
+                type="number"
+                min={1}
+                max={999}
+                value={expiryCustom}
+                onChange={(e) => setExpiryCustom(Math.max(1, Math.min(999, Number(e.target.value))))}
+                className="h-10 rounded-xl font-mono text-center"
+                placeholder="Minutes"
+              />
+            </div>
+          )}
         </div>
 
         {!generated ? (
