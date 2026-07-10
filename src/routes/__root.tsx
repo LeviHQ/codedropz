@@ -110,8 +110,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark" data-accent="orange" style={{ colorScheme: "dark" }}>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var m=localStorage.getItem('cd:mode');var a=localStorage.getItem('cd:accent');var e=document.documentElement;if(m==='light'){e.classList.remove('dark');e.classList.add('light');e.style.colorScheme='light';}else{e.classList.add('dark');e.classList.remove('light');e.style.colorScheme='dark';}e.dataset.accent=a||'orange';}catch(_){}`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>
