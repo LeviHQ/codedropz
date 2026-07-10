@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Navbar } from "@/components/site/Navbar";
 import { Hero } from "@/components/site/Hero";
-import { WhyCodeDropz } from "@/components/site/WhyCodeDropz";
+import { WhyCodeDropz } from "@/components/site/WhyCodeDrop";
 import { ProductApp } from "@/components/site/ProductApp";
 import { Features } from "@/components/site/Features";
 import { WhoFor } from "@/components/site/WhoFor";
