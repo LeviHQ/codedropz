@@ -25,7 +25,7 @@ const ThemeContext = createContext<Ctx | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<Mode>("dark");
-  const [accent, setAccentState] = useState<Accent>("blue");
+  const [accent, setAccentState] = useState<Accent>("orange");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
