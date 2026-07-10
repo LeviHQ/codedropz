@@ -1,4 +1,4 @@
-import { Github } from "lucide-react";
+
 import { Wordmark } from "./Logo";
 import { ModeToggle } from "./ThemeControls";
 
@@ -21,19 +21,10 @@ export function Footer() {
           { label: "Open App", href: "#product" },
         ]} />
 
-        <FooterCol title="Company" links={[
-          { label: "Privacy", href: "#" },
-          { label: "Terms", href: "#" },
-          { label: "Contact", href: "#" },
-        ]} />
-
         <div>
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Theme</div>
           <div className="mt-3 flex items-center gap-2">
             <ModeToggle />
-            <a href="#" className="inline-flex items-center gap-2 rounded-full border border-border px-3 h-9 text-sm text-muted-foreground hover:text-foreground">
-              <Github className="size-4" /> GitHub
-            </a>
           </div>
         </div>
       </div>
