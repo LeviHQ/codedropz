@@ -83,9 +83,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "The fastest way to securely share code or text between two devices. No login, no setup — just a one-time secure code." },
       { name: "author", content: "CodeDrop" },
       { property: "og:title", content: "CodeDrop — Paste. Generate. Share." },
-      { property: "og:description", content: "Instantly transfer code or text with a secure one-time code. No account required." },
+      { property: "og:description", content: "The fastest way to securely share code or text between two devices. No login, no setup — just a one-time secure code." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "CodeDrop — Paste. Generate. Share." },
+      { name: "twitter:description", content: "The fastest way to securely share code or text between two devices. No login, no setup — just a one-time secure code." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9167a5aa-8ddb-4a3e-8bbc-7f534075627b/id-preview-88f57792--00589234-7e04-47dd-8392-04ddc66b273c.lovable.app-1783696480770.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9167a5aa-8ddb-4a3e-8bbc-7f534075627b/id-preview-88f57792--00589234-7e04-47dd-8392-04ddc66b273c.lovable.app-1783696480770.png" },
     ],
     links: [
       {
