@@ -89,6 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "CodeDropz — Paste. Generate. Share." },
       { name: "twitter:description", content: "The fastest way to securely share code or text between two devices. No login, no setup — just a one-time secure code." },
       { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9167a5aa-8ddb-4a3e-8bbc-7f534075627b/id-preview-88f57792--00589234-7e04-47dd-8392-04ddc66b273c.lovable.app-1783696480770.png" },
+      { name: "google-site-verification", content: "Zzs4OzWlLNx4-SaWu68sv9GMDKMTO1bQ0Xatkb5z0yM" },
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/9167a5aa-8ddb-4a3e-8bbc-7f534075627b/id-preview-88f57792--00589234-7e04-47dd-8392-04ddc66b273c.lovable.app-1783696480770.png" },
     ],
     links: [
