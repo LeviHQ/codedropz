@@ -11,16 +11,19 @@ import {
 } from "@/lib/share-store";
 import { cn } from "@/lib/utils";
 
-const ACCESS: { value: AccessLimit; label: string }[] = [
+const ACCESS_OPTIONS = [
   { value: 1, label: "First Access" },
   { value: 5, label: "5 Accesses" },
   { value: 10, label: "10 Accesses" },
-];
-const EXPIRY: { value: ExpirationMinutes; label: string }[] = [
+  { value: "custom", label: "Custom" },
+] as const;
+
+const EXPIRY_OPTIONS = [
   { value: 10, label: "10 Minutes" },
   { value: 30, label: "30 Minutes" },
   { value: 60, label: "1 Hour" },
-];
+  { value: "custom", label: "Custom" },
+] as const;
 
 export function ProductApp() {
   return (
