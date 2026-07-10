@@ -3,7 +3,7 @@ import { SectionHeader } from "./WhyCodeDrop";
 
 const STEPS = [
   { icon: Clipboard, title: "Paste your code", desc: "Drop any snippet or text into the editor." },
-  { icon: Sparkles, title: "Generate a code", desc: "Get a secure 8-character share code instantly." },
+  { icon: Sparkles, title: "Generate a code", desc: "Get a secure 6-character share code instantly." },
   { icon: Send, title: "Share it", desc: "Hand the code (or link) to the receiver." },
   { icon: KeyRound, title: "Receiver enters code", desc: "They paste the code on their device." },
   { icon: Download, title: "Snippet appears", desc: "Retrieved instantly on their screen." },

@@ -240,7 +240,7 @@ function ReceivePanel() {
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === "Enter" && handle()}
-            placeholder="e.g. AB72QK91"
+            placeholder="e.g. AB72QK"
             className="h-14 rounded-xl font-mono text-xl tracking-[0.3em] text-center"
           />
           <Button size="lg" onClick={handle} className="rounded-xl h-12 bg-primary text-primary-foreground hover:opacity-90 shadow-[var(--shadow-glow)]">
@@ -248,7 +248,7 @@ function ReceivePanel() {
           </Button>
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
-          Codes are 8 characters, uppercase. Case-insensitive.
+          Codes are 6 characters, uppercase. Case-insensitive.
         </p>
       </div>
 
@@ -270,7 +270,7 @@ function EmptyReceived() {
         </div>
         <h4 className="mt-4 text-lg font-medium">Ready to receive</h4>
         <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-          Enter the 8-character code from the sender to instantly view the shared snippet.
+          Enter the 6-character code from the sender to instantly view the shared snippet.
         </p>
       </div>
     </div>

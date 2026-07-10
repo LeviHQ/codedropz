@@ -29,7 +29,7 @@ function writeAll(all: Record<string, Share>) {
   localStorage.setItem(KEY, JSON.stringify(all));
 }
 
-export function generateCode(len = 8): string {
+export function generateCode(len = 6): string {
   let out = "";
   const arr = new Uint32Array(len);
   crypto.getRandomValues(arr);
