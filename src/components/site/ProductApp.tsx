@@ -7,8 +7,6 @@ import { toast } from "sonner";
 import {
   createShare,
   retrieveShare,
-  type AccessLimit,
-  type ExpirationMinutes,
   type RetrieveResult,
 } from "@/lib/share-store";
 import { cn } from "@/lib/utils";
