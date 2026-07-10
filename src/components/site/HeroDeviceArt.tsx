@@ -26,7 +26,7 @@ export function HeroDeviceArt() {
             className="font-mono text-2xl md:text-3xl font-semibold tracking-[0.35em]"
             style={{ color: "var(--brand)" }}
           >
-            AB72QK91
+            AB72QK
           </div>
           <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
             <span>Expires in 09:58</span>
