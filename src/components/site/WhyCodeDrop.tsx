@@ -75,7 +75,7 @@ export function WhyCodeDrop() {
                   <span style={{ color: "var(--brand)" }}>Live</span>
                 </div>
                 <div className="mt-2 font-mono text-xl tracking-[0.3em]" style={{ color: "var(--brand)" }}>
-                  AB72QK91
+                  AB72QK
                 </div>
               </div>
             </div>
