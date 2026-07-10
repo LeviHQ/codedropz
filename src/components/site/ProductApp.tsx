@@ -270,7 +270,7 @@ function EmptyReceived() {
         </div>
         <h4 className="mt-4 text-lg font-medium">Ready to receive</h4>
         <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-          Enter the 8-character code from the sender to instantly view the shared snippet.
+          Enter the 6-character code from the sender to instantly view the shared snippet.
         </p>
       </div>
     </div>
