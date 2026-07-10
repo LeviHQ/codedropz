@@ -15,14 +15,14 @@ const NEW = [
   "Instant, distraction-free sharing",
 ];
 
-export function WhyCodeDrop() {
+export function WhyCodeDropz() {
   return (
     <section className="py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-4">
         <SectionHeader
-          eyebrow="Why CodeDrop"
+          eyebrow="Why CodeDropz"
           title="Sharing code shouldn't require a login."
-          subtitle="Skip the friction of chat apps, gists, and pastebins. CodeDrop is built for the moment you just need to move a snippet from one screen to another."
+          subtitle="Skip the friction of chat apps, gists, and pastebins. CodeDropz is built for the moment you just need to move a snippet from one screen to another."
         />
 
         <div className="mt-12 grid md:grid-cols-2 gap-5">
@@ -54,7 +54,7 @@ export function WhyCodeDrop() {
           <div className="relative rounded-3xl p-[1px] overflow-hidden" style={{ background: "var(--gradient-brand)" }}>
             <div className="rounded-[calc(1.5rem-1px)] bg-card p-6 md:p-8 h-full">
               <div className="text-xs uppercase tracking-widest" style={{ color: "var(--brand)" }}>
-                The CodeDrop way
+                The CodeDropz way
               </div>
               <h3 className="mt-2 text-2xl font-semibold">Just paste. Generate. Share.</h3>
 

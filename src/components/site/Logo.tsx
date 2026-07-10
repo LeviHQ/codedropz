@@ -30,7 +30,7 @@ export function Wordmark() {
   return (
     <div className="flex items-center gap-2">
       <Logo className="size-7" />
-      <span className="font-semibold tracking-tight text-[15px]">CodeDrop</span>
+      <span className="font-semibold tracking-tight text-[15px]">CodeDropz</span>
     </div>
   );
 }

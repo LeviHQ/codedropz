@@ -17,7 +17,7 @@ export function HowItWorks() {
         <SectionHeader
           eyebrow="How it works"
           title="Six steps. Under a minute."
-          subtitle="From paste to auto-delete — the entire lifecycle of a CodeDrop."
+          subtitle="From paste to auto-delete — the entire lifecycle of a CodeDropz."
         />
         <div className="mt-14 relative">
           <div
