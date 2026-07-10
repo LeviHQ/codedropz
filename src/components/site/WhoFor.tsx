@@ -1,5 +1,5 @@
 import { GraduationCap, Code2, Bug, BookOpen, FlaskConical, MessagesSquare, Briefcase, Users } from "lucide-react";
-import { SectionHeader } from "./WhyCodeDrop";
+import { SectionHeader } from "./WhyCodeDropz";
 
 const WHO = [
   { icon: GraduationCap, label: "Students", copy: "Hand in snippets without email chains." },
@@ -19,7 +19,7 @@ export function WhoFor() {
         <SectionHeader
           eyebrow="Use Cases"
           title="Built for anyone who moves code."
-          subtitle="If you've ever emailed yourself a snippet, CodeDrop was made for you."
+          subtitle="If you've ever emailed yourself a snippet, CodeDropz was made for you."
         />
         <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {WHO.map((w) => (

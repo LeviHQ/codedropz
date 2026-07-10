@@ -39,7 +39,7 @@ export function Footer() {
       </div>
       <div className="border-t border-border">
         <div className="mx-auto max-w-6xl px-4 py-5 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} CodeDrop. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} CodeDropz. All rights reserved.</span>
           <span>Paste. Generate. Share.</span>
         </div>
       </div>

@@ -1,11 +1,11 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { SectionHeader } from "./WhyCodeDrop";
+import { SectionHeader } from "./WhyCodeDropz";
 
 const QA = [
-  { q: "Do I need an account?", a: "No. CodeDrop is designed to work without signup, login, or email — open the app and start sharing." },
+  { q: "Do I need an account?", a: "No. CodeDropz is designed to work without signup, login, or email — open the app and start sharing." },
   { q: "How long is my code stored?", a: "You choose: 10 minutes, 30 minutes, or 1 hour. It's also deleted immediately once the access limit is reached." },
   { q: "Is my code encrypted?", a: "This MVP stores shares in your browser's local storage. The architecture is ready for end-to-end encryption when a real backend is connected." },
-  { q: "Can I use it on mobile?", a: "Yes. CodeDrop is fully responsive and touch-friendly on phones and tablets." },
+  { q: "Can I use it on mobile?", a: "Yes. CodeDropz is fully responsive and touch-friendly on phones and tablets." },
   { q: "Can I share plain text?", a: "Absolutely — code, notes, URLs, tokens, anything text-based." },
   { q: "Does it work for any programming language?", a: "Yes. Snippets are stored as text so any language works. Syntax highlighting is on the roadmap." },
 ];

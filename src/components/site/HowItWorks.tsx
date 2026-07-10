@@ -1,5 +1,5 @@
 import { Clipboard, Sparkles, Send, KeyRound, Download, Trash2 } from "lucide-react";
-import { SectionHeader } from "./WhyCodeDrop";
+import { SectionHeader } from "./WhyCodeDropz";
 
 const STEPS = [
   { icon: Clipboard, title: "Paste your code", desc: "Drop any snippet or text into the editor." },
@@ -17,7 +17,7 @@ export function HowItWorks() {
         <SectionHeader
           eyebrow="How it works"
           title="Six steps. Under a minute."
-          subtitle="From paste to auto-delete — the entire lifecycle of a CodeDrop."
+          subtitle="From paste to auto-delete — the entire lifecycle of a CodeDropz."
         />
         <div className="mt-14 relative">
           <div
