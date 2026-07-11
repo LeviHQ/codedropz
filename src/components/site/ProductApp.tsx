@@ -113,8 +113,7 @@ function SendPanel() {
       if (!isProbablyText(f)) { skipped++; continue; }
       try {
         const text = await f.text();
-        // @ts-expect-error webkitRelativePath exists for folder uploads
-        const path = (f.webkitRelativePath as string) || f.name;
+        const path = (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
         const header = `\n// ===== ${path} =====\n`;
         if (combined.length + header.length + text.length > MAX_TOTAL_BYTES) {
           toast.error("Total size limit reached (~190KB). Some files skipped.");
