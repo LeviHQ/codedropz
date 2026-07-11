@@ -174,9 +174,9 @@ function SendPanel() {
               <Input
                 type="number"
                 min={1}
-                max={999}
+                max={168}
                 value={expiryCustom}
-                onChange={(e) => setExpiryCustom(Math.max(1, Math.min(999, Number(e.target.value))))}
+                onChange={(e) => setExpiryCustom(Math.max(1, Math.min(168, Number(e.target.value))))}
                 className="h-10 rounded-xl font-mono text-center"
                 placeholder="Minutes"
               />
