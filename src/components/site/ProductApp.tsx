@@ -71,6 +71,7 @@ function SendPanel() {
   const [expiryCustomActive, setExpiryCustomActive] = useState(false);
   const [generated, setGenerated] = useState<{ code: string; expiresAt: number } | null>(null);
   const [remaining, setRemaining] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!generated) return;
@@ -89,11 +90,18 @@ function SendPanel() {
   const finalAccess = accessCustomActive ? accessCustom : access;
   const finalExpiry = expiryCustomActive ? expiryCustom : expiry;
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!content.trim()) { toast.error("Paste some code or text first."); return; }
-    const s = createShare({ content, expirationMinutes: finalExpiry, accessLimit: finalAccess });
-    setGenerated({ code: s.code, expiresAt: s.expiresAt });
-    toast.success("Share code generated");
+    setSubmitting(true);
+    try {
+      const s = await createShare({ content, expirationMinutes: finalExpiry, accessLimit: finalAccess });
+      setGenerated({ code: s.code, expiresAt: s.expiresAt });
+      toast.success("Share code generated");
+    } catch (e) {
+      toast.error((e as Error).message || "Failed to generate code");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const shareUrl = generated
@@ -179,11 +187,12 @@ function SendPanel() {
         {!generated ? (
           <Button
             onClick={handleGenerate}
+            disabled={submitting}
             size="lg"
             className="mt-6 rounded-xl h-12 bg-primary text-primary-foreground hover:opacity-90 shadow-[var(--shadow-glow)]"
           >
             <Sparkles className="size-4" />
-            Generate Share Code
+            {submitting ? "Generating..." : "Generate Share Code"}
           </Button>
         ) : (
           <div className="mt-6 rounded-2xl border border-border bg-background/60 p-4">
