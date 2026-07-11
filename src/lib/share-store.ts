@@ -1,33 +1,15 @@
-// Mock in-memory + localStorage share store. Interface designed so a
-// real backend can swap in without changing callers.
+// Real backend-backed share store using Lovable Cloud.
+import { supabase } from "@/integrations/supabase/client";
 
 export type ExpirationMinutes = number;
 export type AccessLimit = number;
 
 export type Share = {
   code: string;
-  content: string;
-  createdAt: number;
   expiresAt: number;
-  accessLimit: AccessLimit;
-  accessCount: number;
 };
 
-const KEY = "cd:shares";
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-function readAll(): Record<string, Share> {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(KEY) || "{}");
-  } catch {
-    return {};
-  }
-}
-function writeAll(all: Record<string, Share>) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(all));
-}
 
 export function generateCode(len = 6): string {
   let out = "";
@@ -37,64 +19,51 @@ export function generateCode(len = 6): string {
   return out;
 }
 
-export function createShare(input: {
+export async function createShare(input: {
   content: string;
   expirationMinutes: ExpirationMinutes;
   accessLimit: AccessLimit;
-}): Share {
-  const all = readAll();
-  pruneExpired(all);
-  let code = generateCode();
-  while (all[code]) code = generateCode();
-  const now = Date.now();
-  const share: Share = {
-    code,
-    content: input.content,
-    createdAt: now,
-    expiresAt: now + input.expirationMinutes * 60_000,
-    accessLimit: input.accessLimit,
-    accessCount: 0,
-  };
-  all[code] = share;
-  writeAll(all);
-  return share;
+}): Promise<Share> {
+  const expiresAtMs = Date.now() + input.expirationMinutes * 60_000;
+  const expiresAtIso = new Date(expiresAtMs).toISOString();
+
+  // Retry on rare code collision (PK conflict)
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = generateCode();
+    const { error } = await supabase.from("shares").insert({
+      code,
+      content: input.content,
+      expires_at: expiresAtIso,
+      access_limit: input.accessLimit,
+    });
+    if (!error) return { code, expiresAt: expiresAtMs };
+    // 23505 = unique_violation → try a new code
+    if ((error as { code?: string }).code !== "23505") {
+      throw new Error(error.message || "Failed to create share");
+    }
+  }
+  throw new Error("Could not generate a unique code, please try again.");
 }
 
 export type RetrieveResult =
   | { ok: true; content: string; remaining: number; expiresAt: number }
   | { ok: false; reason: "not_found" | "expired" | "exhausted" };
 
-export function retrieveShare(rawCode: string): RetrieveResult {
+export async function retrieveShare(rawCode: string): Promise<RetrieveResult> {
   const code = rawCode.trim().toUpperCase();
-  const all = readAll();
-  pruneExpired(all);
-  const s = all[code];
-  if (!s) return { ok: false, reason: "not_found" };
-  if (Date.now() > s.expiresAt) {
-    delete all[code];
-    writeAll(all);
-    return { ok: false, reason: "expired" };
+  if (!code) return { ok: false, reason: "not_found" };
+  const { data, error } = await supabase.rpc("retrieve_share", { _code: code });
+  if (error) throw new Error(error.message || "Failed to retrieve share");
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return { ok: false, reason: "not_found" };
+  if (!row.ok) {
+    const reason = (row.reason ?? "not_found") as "not_found" | "expired" | "exhausted";
+    return { ok: false, reason };
   }
-  if (s.accessCount >= s.accessLimit) {
-    return { ok: false, reason: "exhausted" };
-  }
-  s.accessCount += 1;
-  const remaining = s.accessLimit - s.accessCount;
-  const content = s.content;
-  if (remaining <= 0) delete all[code];
-  else all[code] = s;
-  writeAll(all);
-  return { ok: true, content, remaining, expiresAt: s.expiresAt };
-}
-
-function pruneExpired(all: Record<string, Share>) {
-  const now = Date.now();
-  let changed = false;
-  for (const k of Object.keys(all)) {
-    if (all[k].expiresAt < now) {
-      delete all[k];
-      changed = true;
-    }
-  }
-  if (changed) writeAll(all);
+  return {
+    ok: true,
+    content: row.content ?? "",
+    remaining: row.remaining ?? 0,
+    expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : Date.now(),
+  };
 }
