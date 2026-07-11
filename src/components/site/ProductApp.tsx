@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
+import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck, Upload, FolderUp, X, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
