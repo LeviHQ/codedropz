@@ -63,6 +63,9 @@ export function ProductApp() {
 
 function SendPanel() {
   const [content, setContent] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const [access, setAccess] = useState<number>(1);
   const [expiry, setExpiry] = useState<number>(10);
   const [accessCustom, setAccessCustom] = useState<number>(20);
@@ -89,6 +92,47 @@ function SendPanel() {
 
   const finalAccess = accessCustomActive ? accessCustom : access;
   const finalExpiry = expiryCustomActive ? expiryCustom : expiry;
+
+  const MAX_TOTAL_BYTES = 190_000; // stay under 200k DB limit
+  const TEXT_EXT = /\.(txt|md|json|ya?ml|toml|xml|csv|tsv|log|env|gitignore|prettierrc|eslintrc|editorconfig|js|jsx|ts|tsx|mjs|cjs|css|scss|sass|less|html?|vue|svelte|astro|py|rb|go|rs|java|kt|kts|swift|c|h|cc|cpp|hpp|cs|php|pl|lua|sh|bash|zsh|fish|ps1|bat|sql|graphql|gql|dockerfile|makefile|ini|conf)$/i;
+
+  const isProbablyText = (f: File) => {
+    if (TEXT_EXT.test(f.name)) return true;
+    if (f.type.startsWith("text/")) return true;
+    if (/json|xml|javascript|typescript|yaml|toml|sql|graphql/.test(f.type)) return true;
+    return f.type === "" && f.size < 200_000; // unknown but small — try
+  };
+
+  const handleFilesPicked = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const list = Array.from(files);
+    let combined = content;
+    const names: string[] = [...uploadedFiles];
+    let skipped = 0;
+    for (const f of list) {
+      if (!isProbablyText(f)) { skipped++; continue; }
+      try {
+        const text = await f.text();
+        // @ts-expect-error webkitRelativePath exists for folder uploads
+        const path = (f.webkitRelativePath as string) || f.name;
+        const header = `\n// ===== ${path} =====\n`;
+        if (combined.length + header.length + text.length > MAX_TOTAL_BYTES) {
+          toast.error("Total size limit reached (~190KB). Some files skipped.");
+          break;
+        }
+        combined += (combined ? "\n" : "") + header + text;
+        names.push(path);
+      } catch {
+        skipped++;
+      }
+    }
+    setContent(combined);
+    setUploadedFiles(names);
+    if (skipped > 0) toast.message(`${skipped} non-text file(s) skipped`);
+    else if (names.length > uploadedFiles.length) toast.success(`${names.length - uploadedFiles.length} file(s) added`);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (folderInputRef.current) folderInputRef.current.value = "";
+  };
 
   const handleGenerate = async () => {
     if (!content.trim()) { toast.error("Paste some code or text first."); return; }
@@ -117,13 +161,64 @@ function SendPanel() {
             <span className="size-2.5 rounded-full bg-yellow-500/70" />
             <span className="size-2.5 rounded-full bg-green-500/70" />
           </div>
-          <span className="text-[11px] font-mono text-muted-foreground">snippet.txt</span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-accent transition-colors"
+              title="Upload files"
+            >
+              <Upload className="size-3" /> Files
+            </button>
+            <button
+              type="button"
+              onClick={() => folderInputRef.current?.click()}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-accent transition-colors"
+              title="Upload folder"
+            >
+              <FolderUp className="size-3" /> Folder
+            </button>
+          </div>
           <span className="text-[11px] text-muted-foreground">{content.length} chars</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => handleFilesPicked(e.target.files)}
+          />
+          <input
+            ref={folderInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            // @ts-expect-error non-standard but widely supported
+            webkitdirectory=""
+            directory=""
+            onChange={(e) => handleFilesPicked(e.target.files)}
+          />
         </div>
+        {uploadedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 border-b border-border px-4 py-2 bg-secondary/30">
+            {uploadedFiles.map((name, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-md bg-background border border-border px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                <FileCode className="size-3" style={{ color: "var(--brand)" }} />
+                {name}
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={() => { setUploadedFiles([]); setContent(""); }}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-3" /> Clear
+            </button>
+          </div>
+        )}
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Paste your code here..."
+          placeholder="Paste your code here — or upload files / a folder above..."
           spellCheck={false}
           className="w-full min-h-[320px] resize-none bg-transparent px-5 py-4 font-mono text-sm outline-none placeholder:text-muted-foreground/60"
         />
