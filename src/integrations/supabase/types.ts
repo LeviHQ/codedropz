@@ -14,13 +14,49 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      shares: {
+        Row: {
+          access_count: number
+          access_limit: number
+          code: string
+          content: string
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          access_count?: number
+          access_limit: number
+          code: string
+          content: string
+          created_at?: string
+          expires_at: string
+        }
+        Update: {
+          access_count?: number
+          access_limit?: number
+          code?: string
+          content?: string
+          created_at?: string
+          expires_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_expired_shares: { Args: never; Returns: undefined }
+      retrieve_share: {
+        Args: { _code: string }
+        Returns: {
+          content: string
+          expires_at: string
+          ok: boolean
+          reason: string
+          remaining: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
