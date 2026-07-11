@@ -260,6 +260,7 @@ function SegBtn({ active, onClick, children }: { active: boolean; onClick: () =>
 function ReceivePanel() {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<RetrieveResult | null>(null);
+  const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -269,12 +270,19 @@ function ReceivePanel() {
     if (c) setCode(c.toUpperCase());
   }, []);
 
-  const handle = () => {
+  const handle = async () => {
     if (!code.trim()) { toast.error("Enter a code first"); inputRef.current?.focus(); return; }
-    const r = retrieveShare(code);
-    setResult(r);
-    if (!r.ok) toast.error(errorText(r.reason));
-    else toast.success("Snippet received");
+    setLoading(true);
+    try {
+      const r = await retrieveShare(code);
+      setResult(r);
+      if (!r.ok) toast.error(errorText(r.reason));
+      else toast.success("Snippet received");
+    } catch (e) {
+      toast.error((e as Error).message || "Failed to receive");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -290,8 +298,8 @@ function ReceivePanel() {
             placeholder="e.g. AB72QK"
             className="h-14 rounded-xl font-mono text-xl tracking-[0.3em] text-center"
           />
-          <Button size="lg" onClick={handle} className="rounded-xl h-12 bg-primary text-primary-foreground hover:opacity-90 shadow-[var(--shadow-glow)]">
-            Receive <ArrowRight className="size-4" />
+          <Button size="lg" onClick={handle} disabled={loading} className="rounded-xl h-12 bg-primary text-primary-foreground hover:opacity-90 shadow-[var(--shadow-glow)]">
+            {loading ? "Receiving..." : "Receive"} <ArrowRight className="size-4" />
           </Button>
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
