@@ -68,15 +68,13 @@ export function ProductApp() {
 
 function SendPanel() {
   const [content, setContent] = useState("");
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [pickedFiles, setPickedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [access, setAccess] = useState<number>(1);
   const [expiry, setExpiry] = useState<number>(10);
   const [accessCustom, setAccessCustom] = useState<number>(20);
-  const [expiryCustom, setExpiryCustom] = useState<number>(120);
   const [accessCustomActive, setAccessCustomActive] = useState(false);
-  const [expiryCustomActive, setExpiryCustomActive] = useState(false);
   const [generated, setGenerated] = useState<{ code: string; expiresAt: number } | null>(null);
   const [remaining, setRemaining] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -86,9 +84,14 @@ function SendPanel() {
     const tick = () => {
       const ms = generated.expiresAt - Date.now();
       if (ms <= 0) { setRemaining("Expired"); return; }
-      const m = Math.floor(ms / 60000);
-      const s = Math.floor((ms % 60000) / 1000);
-      setRemaining(`${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
+      const totalSec = Math.floor(ms / 1000);
+      const d = Math.floor(totalSec / 86400);
+      const h = Math.floor((totalSec % 86400) / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      if (d > 0) setRemaining(`${d}d ${h}h ${m}m`);
+      else if (h > 0) setRemaining(`${h}h ${m.toString().padStart(2, "0")}m`);
+      else setRemaining(`${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -96,53 +99,52 @@ function SendPanel() {
   }, [generated]);
 
   const finalAccess = accessCustomActive ? accessCustom : access;
-  const finalExpiry = expiryCustomActive ? expiryCustom : expiry;
+  const finalExpiry = expiry;
 
-  const MAX_TOTAL_BYTES = 190_000; // stay under 200k DB limit
-  const TEXT_EXT = /\.(txt|md|json|ya?ml|toml|xml|csv|tsv|log|env|gitignore|prettierrc|eslintrc|editorconfig|js|jsx|ts|tsx|mjs|cjs|css|scss|sass|less|html?|vue|svelte|astro|py|rb|go|rs|java|kt|kts|swift|c|h|cc|cpp|hpp|cs|php|pl|lua|sh|bash|zsh|fish|ps1|bat|sql|graphql|gql|dockerfile|makefile|ini|conf)$/i;
+  const MAX_FILE_BYTES = 25 * 1024 * 1024;   // 25 MB per file
+  const MAX_TOTAL_BYTES = 100 * 1024 * 1024; // 100 MB total
 
-  const isProbablyText = (f: File) => {
-    if (TEXT_EXT.test(f.name)) return true;
-    if (f.type.startsWith("text/")) return true;
-    if (/json|xml|javascript|typescript|yaml|toml|sql|graphql/.test(f.type)) return true;
-    return f.type === "" && f.size < 200_000; // unknown but small — try
-  };
+  const totalPickedBytes = pickedFiles.reduce((sum, f) => sum + f.size, 0);
 
-  const handleFilesPicked = async (files: FileList | null) => {
+  const handleFilesPicked = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    const list = Array.from(files);
-    let combined = content;
-    const names: string[] = [...uploadedFiles];
-    let skipped = 0;
-    for (const f of list) {
-      if (!isProbablyText(f)) { skipped++; continue; }
-      try {
-        const text = await f.text();
-        const path = (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
-        const header = `\n// ===== ${path} =====\n`;
-        if (combined.length + header.length + text.length > MAX_TOTAL_BYTES) {
-          toast.error("Total size limit reached (~190KB). Some files skipped.");
-          break;
-        }
-        combined += (combined ? "\n" : "") + header + text;
-        names.push(path);
-      } catch {
-        skipped++;
+    const incoming = Array.from(files);
+    const next = [...pickedFiles];
+    let total = totalPickedBytes;
+    let skippedBig = 0;
+    for (const f of incoming) {
+      if (f.size > MAX_FILE_BYTES) { skippedBig++; continue; }
+      if (total + f.size > MAX_TOTAL_BYTES) {
+        toast.error("Total size limit reached (100MB). Some files skipped.");
+        break;
       }
+      next.push(f);
+      total += f.size;
     }
-    setContent(combined);
-    setUploadedFiles(names);
-    if (skipped > 0) toast.message(`${skipped} non-text file(s) skipped`);
-    else if (names.length > uploadedFiles.length) toast.success(`${names.length - uploadedFiles.length} file(s) added`);
+    setPickedFiles(next);
+    if (skippedBig > 0) toast.message(`${skippedBig} file(s) over 25MB skipped`);
+    else if (next.length > pickedFiles.length) toast.success(`${next.length - pickedFiles.length} file(s) added`);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (folderInputRef.current) folderInputRef.current.value = "";
   };
 
+  const removeFileAt = (idx: number) => {
+    setPickedFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleGenerate = async () => {
-    if (!content.trim()) { toast.error("Paste some code or text first."); return; }
+    if (!content.trim() && pickedFiles.length === 0) {
+      toast.error("Paste some text or add files first.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const s = await createShare({ content, expirationMinutes: finalExpiry, accessLimit: finalAccess });
+      const s = await createShare({
+        content,
+        expirationMinutes: finalExpiry,
+        accessLimit: finalAccess,
+        files: pickedFiles,
+      });
       setGenerated({ code: s.code, expiresAt: s.expiresAt });
       toast.success("Share code generated");
     } catch (e) {
@@ -183,7 +185,9 @@ function SendPanel() {
               <FolderUp className="size-3" /> Folder
             </button>
           </div>
-          <span className="text-[11px] text-muted-foreground">{content.length} chars</span>
+          <span className="text-[11px] text-muted-foreground">
+            {content.length} chars{pickedFiles.length > 0 ? ` · ${pickedFiles.length} file(s) · ${formatBytes(totalPickedBytes)}` : ""}
+          </span>
           <input
             ref={fileInputRef}
             type="file"
@@ -202,27 +206,39 @@ function SendPanel() {
             onChange={(e) => handleFilesPicked(e.target.files)}
           />
         </div>
-        {uploadedFiles.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 border-b border-border px-4 py-2 bg-secondary/30">
-            {uploadedFiles.map((name, i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded-md bg-background border border-border px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
-                <FileCode className="size-3" style={{ color: "var(--brand)" }} />
-                {name}
-              </span>
-            ))}
+        {pickedFiles.length > 0 && (
+          <div className="max-h-40 overflow-auto flex flex-wrap gap-1.5 border-b border-border px-4 py-2 bg-secondary/30">
+            {pickedFiles.map((f, i) => {
+              const path = (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name;
+              return (
+                <span key={i} className="inline-flex items-center gap-1 rounded-md bg-background border border-border px-2 py-0.5 text-[10px] font-mono text-muted-foreground">
+                  <FileIcon className="size-3" style={{ color: "var(--brand)" }} />
+                  <span className="max-w-[220px] truncate">{path}</span>
+                  <span className="opacity-60">({formatBytes(f.size)})</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFileAt(i)}
+                    className="ml-0.5 text-muted-foreground hover:text-foreground"
+                    aria-label="Remove file"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </span>
+              );
+            })}
             <button
               type="button"
-              onClick={() => { setUploadedFiles([]); setContent(""); }}
+              onClick={() => setPickedFiles([])}
               className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] text-muted-foreground hover:text-foreground"
             >
-              <X className="size-3" /> Clear
+              <X className="size-3" /> Clear all
             </button>
           </div>
         )}
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Paste your code here — or upload files / a folder above..."
+          placeholder="Paste code or text here — or attach files / folders above (optional)..."
           spellCheck={false}
           className="w-full min-h-[320px] resize-none bg-transparent px-5 py-4 font-mono text-sm outline-none placeholder:text-muted-foreground/60"
         />
@@ -260,27 +276,11 @@ function SendPanel() {
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Expiration</div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {EXPIRY_OPTIONS.map((a) => (
-              <SegBtn key={a.value} active={!expiryCustomActive && expiry === a.value} onClick={() => { setExpiry(a.value); setExpiryCustomActive(false); }}>
+              <SegBtn key={a.value} active={expiry === a.value} onClick={() => setExpiry(a.value)}>
                 {a.label}
               </SegBtn>
             ))}
-            <SegBtn active={expiryCustomActive} onClick={() => setExpiryCustomActive(true)}>
-              Custom
-            </SegBtn>
           </div>
-          {expiryCustomActive && (
-            <div className="mt-2">
-              <Input
-                type="number"
-                min={1}
-                max={168}
-                value={expiryCustom}
-                onChange={(e) => setExpiryCustom(Math.max(1, Math.min(168, Number(e.target.value))))}
-                className="h-10 rounded-xl font-mono text-center"
-                placeholder="Minutes"
-              />
-            </div>
-          )}
         </div>
 
         {!generated ? (
@@ -291,7 +291,7 @@ function SendPanel() {
             className="mt-6 rounded-xl h-12 bg-primary text-primary-foreground hover:opacity-90 shadow-[var(--shadow-glow)]"
           >
             <Sparkles className="size-4" />
-            {submitting ? "Generating..." : "Generate Share Code"}
+            {submitting ? (pickedFiles.length > 0 ? "Uploading..." : "Generating...") : "Generate Share Code"}
           </Button>
         ) : (
           <div className="mt-6 rounded-2xl border border-border bg-background/60 p-4">
@@ -323,7 +323,7 @@ function SendPanel() {
               variant="ghost"
               size="sm"
               className="mt-3 w-full text-muted-foreground"
-              onClick={() => { setGenerated(null); setContent(""); }}
+              onClick={() => { setGenerated(null); setContent(""); setPickedFiles([]); }}
             >
               <RefreshCcw className="size-3.5" /> New share
             </Button>
@@ -337,6 +337,13 @@ function SendPanel() {
       </div>
     </div>
   );
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
 function SegBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
