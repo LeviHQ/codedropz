@@ -416,7 +416,7 @@ function ReceivePanel() {
       <div className="rounded-2xl border border-border bg-card overflow-hidden min-h-[320px] flex flex-col">
         {!result && <EmptyReceived />}
         {result && !result.ok && <ErrorReceived reason={result.reason} onRetry={() => setResult(null)} />}
-        {result && result.ok && <ReceivedView content={result.content} remaining={result.remaining} />}
+        {result && result.ok && <ReceivedView content={result.content} files={result.files} remaining={result.remaining} />}
       </div>
     </div>
   );
@@ -466,10 +466,14 @@ function errorText(r: "not_found" | "expired" | "exhausted") {
     : "This share reached its maximum number of accesses.";
 }
 
-function ReceivedView({ content, remaining }: { content: string; remaining: number }) {
-  const lines = useMemo(() => content.split("\n"), [content]);
-  const download = (filename: string) => {
-    const blob = new Blob([content], { type: "text/plain" });
+function ReceivedView({ content, files, remaining }: { content: string; files: ShareFile[]; remaining: number }) {
+  const hasText = content.length > 0;
+  const hasFiles = files.length > 0;
+  const lines = useMemo(() => (hasText ? content.split("\n") : []), [content, hasText]);
+  const [zipping, setZipping] = useState(false);
+  const [busyIdx, setBusyIdx] = useState<number | null>(null);
+
+  const saveBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -477,6 +481,39 @@ function ReceivedView({ content, remaining }: { content: string; remaining: numb
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const downloadOne = async (f: ShareFile, i: number) => {
+    setBusyIdx(i);
+    try {
+      const blob = await downloadShareFile(f.storagePath);
+      const name = f.path.split("/").pop() || "file";
+      saveBlob(blob, name);
+    } catch (e) {
+      toast.error((e as Error).message || "Download failed");
+    } finally {
+      setBusyIdx(null);
+    }
+  };
+
+  const downloadAllZip = async () => {
+    setZipping(true);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      if (hasText) zip.file("snippet.txt", content);
+      for (const f of files) {
+        const blob = await downloadShareFile(f.storagePath);
+        zip.file(f.path, blob);
+      }
+      const out = await zip.generateAsync({ type: "blob" });
+      saveBlob(out, "codedropz.zip");
+    } catch (e) {
+      toast.error((e as Error).message || "Zip failed");
+    } finally {
+      setZipping(false);
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
@@ -485,36 +522,86 @@ function ReceivedView({ content, remaining }: { content: string; remaining: numb
           <span className="size-2.5 rounded-full bg-yellow-500/70" />
           <span className="size-2.5 rounded-full bg-green-500/70" />
         </div>
-        <span className="text-[11px] font-mono text-muted-foreground">received.txt</span>
+        <span className="text-[11px] font-mono text-muted-foreground">
+          {hasText && hasFiles ? "text + files" : hasText ? "received.txt" : `${files.length} file(s)`}
+        </span>
         <span className="text-[11px]" style={{ color: "var(--brand)" }}>
           {remaining === 0 ? "final view — deleted" : `${remaining} views left`}
         </span>
       </div>
+
       <div className="flex-1 overflow-auto">
-        <pre className="p-4 text-sm font-mono leading-relaxed">
-          {lines.map((l, i) => (
-            <div key={i} className="flex gap-4">
-              <span className="select-none text-muted-foreground/50 w-6 text-right">{i + 1}</span>
-              <span className="whitespace-pre-wrap break-all">{l || " "}</span>
+        {hasText && (
+          <pre className="p-4 text-sm font-mono leading-relaxed">
+            {lines.map((l, i) => (
+              <div key={i} className="flex gap-4">
+                <span className="select-none text-muted-foreground/50 w-6 text-right">{i + 1}</span>
+                <span className="whitespace-pre-wrap break-all">{l || " "}</span>
+              </div>
+            ))}
+          </pre>
+        )}
+        {hasFiles && (
+          <div className={cn("p-3 space-y-1.5", hasText && "border-t border-border")}>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-1 pb-1">
+              Attached files
             </div>
-          ))}
-        </pre>
+            {files.map((f, i) => (
+              <div key={i} className="flex items-center gap-2 rounded-lg border border-border bg-background/50 px-3 py-2">
+                <FileIcon className="size-4 shrink-0" style={{ color: "var(--brand)" }} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-mono truncate">{f.path}</div>
+                  <div className="text-[10px] text-muted-foreground">{formatBytes(f.size)}</div>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-lg shrink-0"
+                  onClick={() => downloadOne(f, i)}
+                  disabled={busyIdx === i}
+                >
+                  <Download className="size-3.5" />
+                  {busyIdx === i ? "..." : "Download"}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
       <div className="border-t border-border p-3 flex flex-wrap gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          className="rounded-lg"
-          onClick={() => { navigator.clipboard.writeText(content); toast.success("Copied to clipboard"); }}
-        >
-          <Copy className="size-4" /> Copy
-        </Button>
-        <Button variant="secondary" size="sm" className="rounded-lg" onClick={() => download("snippet.txt")}>
-          <Download className="size-4" /> Download TXT
-        </Button>
-        <Button variant="secondary" size="sm" className="rounded-lg" onClick={() => download("snippet.code.txt")}>
-          <Download className="size-4" /> Download Code
-        </Button>
+        {hasText && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => { navigator.clipboard.writeText(content); toast.success("Copied to clipboard"); }}
+          >
+            <Copy className="size-4" /> Copy text
+          </Button>
+        )}
+        {hasText && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => saveBlob(new Blob([content], { type: "text/plain" }), "snippet.txt")}
+          >
+            <Download className="size-4" /> Download TXT
+          </Button>
+        )}
+        {(hasFiles || hasText) && (hasFiles ? true : false) && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            onClick={downloadAllZip}
+            disabled={zipping}
+          >
+            <Archive className="size-4" />
+            {zipping ? "Zipping..." : hasText ? "Download all (.zip)" : files.length > 1 ? "Download all (.zip)" : "Download as .zip"}
+          </Button>
+        )}
       </div>
     </>
   );
