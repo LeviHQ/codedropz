@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck, Upload, FolderUp, X, FileCode } from "lucide-react";
+import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck, Upload, FolderUp, X, FileIcon, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import {
   createShare,
   retrieveShare,
+  downloadShareFile,
+  type ShareFile,
   type RetrieveResult,
 } from "@/lib/share-store";
 import { cn } from "@/lib/utils";
@@ -21,6 +23,9 @@ const EXPIRY_OPTIONS = [
   { value: 10, label: "10 Minutes" },
   { value: 30, label: "30 Minutes" },
   { value: 60, label: "1 Hour" },
+  { value: 1440, label: "1 Day" },
+  { value: 10080, label: "7 Days" },
+  { value: 43200, label: "1 Month" },
 ] as const;
 
 export function ProductApp() {
