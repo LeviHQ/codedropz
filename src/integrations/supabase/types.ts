@@ -22,14 +22,16 @@ export type Database = {
           content: string
           created_at: string
           expires_at: string
+          files: Json
         }
         Insert: {
           access_count?: number
           access_limit: number
           code: string
-          content: string
+          content?: string
           created_at?: string
           expires_at: string
+          files?: Json
         }
         Update: {
           access_count?: number
@@ -38,6 +40,7 @@ export type Database = {
           content?: string
           created_at?: string
           expires_at?: string
+          files?: Json
         }
         Relationships: []
       }
@@ -52,6 +55,7 @@ export type Database = {
         Returns: {
           content: string
           expires_at: string
+          files: Json
           ok: boolean
           reason: string
           remaining: number
