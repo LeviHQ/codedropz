@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck, Upload, FolderUp, X, FileIcon, Archive } from "lucide-react";
+import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck, Upload, FolderUp, X, FileIcon, Archive, QrCode, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,8 @@ import {
   createShare,
   retrieveShare,
   downloadShareFile,
+  cancelShare,
+  shareUrl as buildShareUrl,
   type ShareFile,
   type RetrieveResult,
 } from "@/lib/share-store";
@@ -75,9 +77,11 @@ function SendPanel() {
   const [expiry, setExpiry] = useState<number>(10);
   const [accessCustom, setAccessCustom] = useState<number>(20);
   const [accessCustomActive, setAccessCustomActive] = useState(false);
-  const [generated, setGenerated] = useState<{ code: string; expiresAt: number } | null>(null);
+const [generated, setGenerated] = useState<{ code: string; expiresAt: number; senderToken: string } | null>(null);
   const [remaining, setRemaining] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState("");
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!generated) return;
@@ -93,9 +97,34 @@ function SendPanel() {
       else if (h > 0) setRemaining(`${h}h ${m.toString().padStart(2, "0")}m`);
       else setRemaining(`${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`);
     };
-    tick();
+tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
+  }, [generated]);
+
+  useEffect(() => {
+    if (!generated) {
+      setQrDataUrl("");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { toDataURL } = await import("qrcode");
+        const url = await toDataURL(buildShareUrl(generated.code), {
+          width: 176,
+          margin: 1,
+          errorCorrectionLevel: "M",
+          color: { dark: "#111827", light: "#ffffff" },
+        });
+        if (!cancelled) setQrDataUrl(url);
+      } catch {
+        // QR code is a nice-to-have; the link still works without it.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [generated]);
 
   const finalAccess = accessCustomActive ? accessCustom : access;
@@ -138,25 +167,63 @@ function SendPanel() {
       return;
     }
     setSubmitting(true);
-    try {
+try {
       const s = await createShare({
         content,
         expirationMinutes: finalExpiry,
         accessLimit: finalAccess,
         files: pickedFiles,
       });
-      setGenerated({ code: s.code, expiresAt: s.expiresAt });
+      setGenerated({ code: s.code, expiresAt: s.expiresAt, senderToken: s.senderToken });
+      try {
+        sessionStorage.setItem(`cd:token:${s.code}`, s.senderToken);
+      } catch {
+        // Private mode — token lives only in memory for this session.
+      }
       toast.success("Share code generated");
     } catch (e) {
       toast.error((e as Error).message || "Failed to generate code");
     } finally {
       setSubmitting(false);
     }
+};
+
+  const handleNativeShare = async () => {
+    if (!generated) return;
+    const url = buildShareUrl(generated.code);
+    const text = `CodeDropz share code: ${generated.code} — ${url}`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "CodeDropz share", text, url });
+      } catch {
+        // user dismissed the share sheet
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+    }
   };
 
-  const shareUrl = generated
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/?code=${generated.code}`
-    : "";
+  const handleCancel = async () => {
+    if (!generated) return;
+    setCancelling(true);
+    try {
+      const ok = await cancelShare(generated.code, generated.senderToken);
+      sessionStorage.removeItem(`cd:token:${generated.code}`);
+      if (ok) toast.success("Share cancelled & deleted");
+      else toast.message("Share already expired or deleted");
+      setGenerated(null);
+      setContent("");
+      setPickedFiles([]);
+      setQrDataUrl("");
+    } catch (e) {
+      toast.error((e as Error).message || "Failed to cancel share");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const link = generated ? buildShareUrl(generated.code) : "";
 
   return (
     <div className="grid lg:grid-cols-[1.4fr_1fr] gap-4">
@@ -294,7 +361,7 @@ function SendPanel() {
             {submitting ? (pickedFiles.length > 0 ? "Uploading..." : "Generating...") : "Generate Share Code"}
           </Button>
         ) : (
-          <div className="mt-6 rounded-2xl border border-border bg-background/60 p-4">
+<div className="mt-6 rounded-2xl border border-border bg-background/60 p-4">
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Your share code</div>
             <div className="mt-1 font-mono text-3xl md:text-4xl font-semibold tracking-[0.28em]" style={{ color: "var(--brand)" }}>
               {generated.code}
@@ -303,6 +370,42 @@ function SendPanel() {
               <Clock className="size-3.5" />
               Expires in <span className="font-mono text-foreground">{remaining}</span>
             </div>
+
+            {qrDataUrl && (
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-white p-3">
+                <img
+                  src={qrDataUrl}
+                  alt={`QR code for share ${generated.code}`}
+                  width={96}
+                  height={96}
+                  className="size-24 shrink-0 rounded-lg"
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                    <QrCode className="size-3.5" style={{ color: "var(--brand)" }} /> Scan to open
+                  </div>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    Point your other device's camera at the QR code — it opens the share link instantly.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-3">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Share link</div>
+              <div className="mt-1.5 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
+                <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">{link}</span>
+                <button
+                  type="button"
+                  onClick={() => { navigator.clipboard.writeText(link); toast.success("Link copied"); }}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Copy share link"
+                >
+                  <Link2 className="size-4" />
+                </button>
+              </div>
+            </div>
+
             <div className="mt-4 grid grid-cols-2 gap-2">
               <Button
                 variant="secondary"
@@ -311,19 +414,27 @@ function SendPanel() {
               >
                 <Copy className="size-4" /> Copy Code
               </Button>
-              <Button
-                variant="secondary"
-                className="rounded-lg"
-                onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Share link copied"); }}
-              >
-                <Link2 className="size-4" /> Copy Link
+              <Button variant="secondary" className="rounded-lg" onClick={handleNativeShare}>
+                <Share2 className="size-4" /> Share
               </Button>
             </div>
+
             <Button
               variant="ghost"
               size="sm"
-              className="mt-3 w-full text-muted-foreground"
-              onClick={() => { setGenerated(null); setContent(""); setPickedFiles([]); }}
+              className="mt-2 w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={handleCancel}
+              disabled={cancelling}
+            >
+              <Trash2 className="size-3.5" />
+              {cancelling ? "Deleting..." : "Cancel this share"}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-1 w-full text-muted-foreground"
+              onClick={() => { setGenerated(null); setContent(""); setPickedFiles([]); setQrDataUrl(""); }}
             >
               <RefreshCcw className="size-3.5" /> New share
             </Button>

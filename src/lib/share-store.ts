@@ -14,6 +14,7 @@ export type ShareFile = {
 export type Share = {
   code: string;
   expiresAt: number;
+  senderToken: string;
 };
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -25,6 +26,12 @@ export function generateCode(len = 6): string {
   crypto.getRandomValues(arr);
   for (let i = 0; i < len; i++) out += ALPHABET[arr[i] % ALPHABET.length];
   return out;
+}
+
+function generateToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function sanitizePath(p: string): string {
@@ -53,8 +60,9 @@ export async function createShare(input: {
   accessLimit: AccessLimit;
   files?: File[];
 }): Promise<Share> {
-  const expiresAtMs = Date.now() + input.expirationMinutes * 60_000;
+const expiresAtMs = Date.now() + input.expirationMinutes * 60_000;
   const expiresAtIso = new Date(expiresAtMs).toISOString();
+  const senderToken = generateToken();
 
   // Retry on rare code collision (PK conflict)
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -71,8 +79,9 @@ export async function createShare(input: {
       expires_at: expiresAtIso,
       access_limit: input.accessLimit,
       files: uploaded as unknown as never,
+      sender_token: senderToken,
     });
-    if (!error) return { code, expiresAt: expiresAtMs };
+    if (!error) return { code, expiresAt: expiresAtMs, senderToken };
 
     // rollback uploaded files on failure
     if (uploaded.length > 0) {
@@ -114,4 +123,46 @@ export async function downloadShareFile(storagePath: string): Promise<Blob> {
   const { data, error } = await supabase.storage.from(BUCKET).download(storagePath);
   if (error || !data) throw new Error(error?.message || "Download failed");
   return data;
+}
+
+/** Absolute URL that opens a share directly (e.g. https://codedropz.vercel.app/r/AB72QK). */
+export function shareUrl(code: string): string {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://codedropz.vercel.app";
+  return `${origin}/r/${code}`;
+}
+
+/** Recursively lists every stored object under a folder prefix. */
+async function listStoragePaths(prefix: string): Promise<string[]> {
+  const { data, error } = await supabase.storage.from(BUCKET).list(prefix, { limit: 200 });
+  if (error || !data) return [];
+  const paths: string[] = [];
+  for (const item of data) {
+    if (item.id) {
+      paths.push(`${prefix}/${item.name}`);
+    } else {
+      paths.push(...(await listStoragePaths(`${prefix}/${item.name}`)));
+    }
+  }
+  return paths;
+}
+
+/**
+ * Deletes a share (content + uploaded files) before it expires.
+ * Only the sender — who holds the private token — can cancel a share.
+ */
+export async function cancelShare(code: string, token: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("delete_share", { _code: code, _token: token });
+  if (error) throw new Error(error.message || "Failed to cancel share");
+  const deleted = data === true;
+  if (deleted) {
+    // Best-effort cleanup of uploaded files (safe: row is already gone).
+    try {
+      const paths = await listStoragePaths(code);
+      if (paths.length > 0) await supabase.storage.from(BUCKET).remove(paths);
+    } catch {
+      // Orphaned files are unreachable once the row is deleted.
+    }
+  }
+  return deleted;
 }

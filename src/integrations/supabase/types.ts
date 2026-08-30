@@ -23,6 +23,7 @@ export type Database = {
           created_at: string
           expires_at: string
           files: Json
+          sender_token: string | null
         }
         Insert: {
           access_count?: number
@@ -32,6 +33,7 @@ export type Database = {
           created_at?: string
           expires_at: string
           files?: Json
+          sender_token?: string | null
         }
         Update: {
           access_count?: number
@@ -41,6 +43,7 @@ export type Database = {
           created_at?: string
           expires_at?: string
           files?: Json
+          sender_token?: string | null
         }
         Relationships: []
       }
@@ -50,6 +53,10 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_shares: { Args: never; Returns: undefined }
+      delete_share: {
+        Args: { _code: string; _token: string }
+        Returns: boolean
+      }
       retrieve_share: {
         Args: { _code: string }
         Returns: {
