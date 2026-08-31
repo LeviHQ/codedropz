@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Wordmark } from "@/components/site/Logo";
 import {
   adminDeleteShare,
+  adminUpdateShare,
   adminListShares,
   adminLogin,
   adminLogout,
