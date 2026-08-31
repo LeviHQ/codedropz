@@ -202,8 +202,7 @@ function ShareRowEditor({ row, onChanged }: { row: AdminShareRow; onChanged: () 
   async function save() {
     setSaving(true);
     try {
-      const { adminUpdateShare } = await import("@/lib/admin.functions");
-      await adminUpdateShare({
+      await update({
         data: {
           code: row.code,
           content,
@@ -225,7 +224,6 @@ function ShareRowEditor({ row, onChanged }: { row: AdminShareRow; onChanged: () 
     if (!window.confirm(`Delete share ${row.code}? This also removes its files.`)) return;
     setDeleting(true);
     try {
-      const { adminDeleteShare: del } = await import("@/lib/admin.functions");
       await del({ data: { code: row.code } });
       toast.success(`Deleted ${row.code}`);
       onChanged();
