@@ -52,6 +52,13 @@ export function Navbar() {
                 {i.label}
               </a>
             ))}
+            <Link
+              to="/admin"
+              className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors inline-flex items-center gap-1.5"
+            >
+              <Lock className="size-3.5" />
+              Admin
+            </Link>
           </div>
 
           <div className="flex items-center gap-1">
