@@ -189,24 +189,8 @@ function AdminPage() {
 }
 
 function ShareRowEditor({ row, onChanged }: { row: AdminShareRow; onChanged: () => void }) {
-  const update = useServerFn(
-    // lazy import avoided: direct reference below
-    (await0 as never) ?? (undefined as never),
-  );
-  return <ShareRowEditorInner row={row} onChanged={onChanged} _unused={update} />;
-}
-
-// placeholder to satisfy TS in the wrapper above
-const await0 = undefined;
-
-function ShareRowEditorInner({
-  row,
-  onChanged,
-}: {
-  row: AdminShareRow;
-  onChanged: () => void;
-  _unused?: unknown;
-}) {
+  const update = useServerFn(adminUpdateShare);
+  const del = useServerFn(adminDeleteShare);
   const [content, setContent] = useState(row.content);
   const [expiresAt, setExpiresAt] = useState(toLocalInput(row.expires_at));
   const [limit, setLimit] = useState(String(row.access_limit));
