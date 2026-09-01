@@ -97,14 +97,6 @@ export function Navbar() {
                 {i.label}
               </a>
             ))}
-            <Link
-              to="/admin"
-              onClick={() => setOpen(false)}
-              className="px-3 py-2 rounded-lg text-sm hover:bg-accent inline-flex items-center gap-1.5"
-            >
-              <Lock className="size-3.5" />
-              Admin
-            </Link>
             <div className="flex items-center gap-2 px-2 pt-2 border-t border-border mt-2">
               <ModeToggle />
               <AccentPicker />
