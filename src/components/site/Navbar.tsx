@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { Lock, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "./Logo";
 import { ModeToggle, AccentPicker } from "./ThemeControls";
@@ -53,13 +52,6 @@ export function Navbar() {
                 {i.label}
               </a>
             ))}
-            <Link
-              to="/admin"
-              className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors inline-flex items-center gap-1.5"
-            >
-              <Lock className="size-3.5" />
-              Admin
-            </Link>
           </div>
 
           <div className="flex items-center gap-1">
@@ -98,14 +90,6 @@ export function Navbar() {
                 {i.label}
               </a>
             ))}
-            <Link
-              to="/admin"
-              onClick={() => setOpen(false)}
-              className="px-3 py-2 rounded-lg text-sm hover:bg-accent inline-flex items-center gap-1.5"
-            >
-              <Lock className="size-3.5" />
-              Admin
-            </Link>
             <div className="flex items-center gap-2 px-2 pt-2 border-t border-border mt-2">
               <ModeToggle />
               <AccentPicker />

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck, Upload, FolderUp, X, FileIcon, Archive, QrCode, Share2, Trash2 } from "lucide-react";
+import { Copy, Link2, Sparkles, ArrowRight, Download, RefreshCcw, AlertTriangle, Clock, ShieldCheck, Upload, FolderUp, X, FileIcon, Archive, QrCode, Share2, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,8 +8,9 @@ import {
   createShare,
   retrieveShare,
   downloadShareFile,
-  cancelShare,
   shareUrl as buildShareUrl,
+  CUSTOM_CODE_RE,
+  normalizeCustomCode,
   type ShareFile,
   type RetrieveResult,
 } from "@/lib/share-store";
@@ -77,11 +78,12 @@ function SendPanel() {
   const [expiry, setExpiry] = useState<number>(10);
   const [accessCustom, setAccessCustom] = useState<number>(20);
   const [accessCustomActive, setAccessCustomActive] = useState(false);
-const [generated, setGenerated] = useState<{ code: string; expiresAt: number; senderToken: string } | null>(null);
+  const [codeMode, setCodeMode] = useState<"random" | "custom">("random");
+  const [customCode, setCustomCode] = useState("");
+  const [generated, setGenerated] = useState<{ code: string; expiresAt: number } | null>(null);
   const [remaining, setRemaining] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState("");
-  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!generated) return;
@@ -166,20 +168,20 @@ tick();
       toast.error("Paste some text or add files first.");
       return;
     }
+    if (codeMode === "custom" && !CUSTOM_CODE_RE.test(normalizeCustomCode(customCode))) {
+      toast.error("Custom code must be 4–12 letters or numbers.");
+      return;
+    }
     setSubmitting(true);
-try {
+    try {
       const s = await createShare({
         content,
         expirationMinutes: finalExpiry,
         accessLimit: finalAccess,
         files: pickedFiles,
+        customCode: codeMode === "custom" ? normalizeCustomCode(customCode) : undefined,
       });
-      setGenerated({ code: s.code, expiresAt: s.expiresAt, senderToken: s.senderToken });
-      try {
-        sessionStorage.setItem(`cd:token:${s.code}`, s.senderToken);
-      } catch {
-        // Private mode — token lives only in memory for this session.
-      }
+      setGenerated({ code: s.code, expiresAt: s.expiresAt });
       toast.success("Share code generated");
     } catch (e) {
       toast.error((e as Error).message || "Failed to generate code");
@@ -201,25 +203,6 @@ try {
     } else {
       await navigator.clipboard.writeText(text);
       toast.success("Copied to clipboard");
-    }
-  };
-
-  const handleCancel = async () => {
-    if (!generated) return;
-    setCancelling(true);
-    try {
-      const ok = await cancelShare(generated.code, generated.senderToken);
-      sessionStorage.removeItem(`cd:token:${generated.code}`);
-      if (ok) toast.success("Share cancelled & deleted");
-      else toast.message("Share already expired or deleted");
-      setGenerated(null);
-      setContent("");
-      setPickedFiles([]);
-      setQrDataUrl("");
-    } catch (e) {
-      toast.error((e as Error).message || "Failed to cancel share");
-    } finally {
-      setCancelling(false);
     }
   };
 
@@ -340,6 +323,35 @@ try {
         </div>
 
         <div className="mt-5">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">Share code</div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <SegBtn active={codeMode === "random"} onClick={() => setCodeMode("random")}>
+              Random
+            </SegBtn>
+            <SegBtn active={codeMode === "custom"} onClick={() => setCodeMode("custom")}>
+              Custom
+            </SegBtn>
+          </div>
+          {codeMode === "custom" && (
+            <div className="mt-2">
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3">
+                <Hash className="size-4 shrink-0 text-muted-foreground" />
+                <Input
+                  value={customCode}
+                  onChange={(e) => setCustomCode(normalizeCustomCode(e.target.value).slice(0, 12))}
+                  maxLength={12}
+                  placeholder="MYCODE1"
+                  className="h-10 border-0 bg-transparent px-0 font-mono tracking-[0.2em] shadow-none focus-visible:ring-0"
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                4–12 letters or numbers. If it's already taken, you'll be asked for another.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Expiration</div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {EXPIRY_OPTIONS.map((a) => (
@@ -418,17 +430,6 @@ try {
                 <Share2 className="size-4" /> Share
               </Button>
             </div>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={handleCancel}
-              disabled={cancelling}
-            >
-              <Trash2 className="size-3.5" />
-              {cancelling ? "Deleting..." : "Cancel this share"}
-            </Button>
 
             <Button
               variant="ghost"

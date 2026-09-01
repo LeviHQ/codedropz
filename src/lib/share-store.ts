@@ -54,19 +54,34 @@ async function uploadFiles(code: string, files: File[]): Promise<ShareFile[]> {
   return out;
 }
 
+/** Allowed shape for user-chosen codes. */
+export const CUSTOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
+
+export function normalizeCustomCode(raw: string): string {
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 export async function createShare(input: {
   content: string;
   expirationMinutes: ExpirationMinutes;
   accessLimit: AccessLimit;
   files?: File[];
+  /** Optional user-chosen code. When omitted a random code is generated. */
+  customCode?: string;
 }): Promise<Share> {
-const expiresAtMs = Date.now() + input.expirationMinutes * 60_000;
+  const expiresAtMs = Date.now() + input.expirationMinutes * 60_000;
   const expiresAtIso = new Date(expiresAtMs).toISOString();
   const senderToken = generateToken();
 
+  const custom = input.customCode ? normalizeCustomCode(input.customCode) : "";
+  if (input.customCode && !CUSTOM_CODE_RE.test(custom)) {
+    throw new Error("Custom code must be 4–12 letters or numbers.");
+  }
+
+  const attempts = custom ? 1 : 5;
   // Retry on rare code collision (PK conflict)
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const code = generateCode();
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const code = custom || generateCode();
 
     let uploaded: ShareFile[] = [];
     if (input.files && input.files.length > 0) {
@@ -90,6 +105,9 @@ const expiresAtMs = Date.now() + input.expirationMinutes * 60_000;
     // 23505 = unique_violation → try a new code
     if ((error as { code?: string }).code !== "23505") {
       throw new Error(error.message || "Failed to create share");
+    }
+    if (custom) {
+      throw new Error(`Code "${custom}" is already in use. Try another one.`);
     }
   }
   throw new Error("Could not generate a unique code, please try again.");
@@ -130,39 +148,4 @@ export function shareUrl(code: string): string {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://codedropz.vercel.app";
   return `${origin}/r/${code}`;
-}
-
-/** Recursively lists every stored object under a folder prefix. */
-async function listStoragePaths(prefix: string): Promise<string[]> {
-  const { data, error } = await supabase.storage.from(BUCKET).list(prefix, { limit: 200 });
-  if (error || !data) return [];
-  const paths: string[] = [];
-  for (const item of data) {
-    if (item.id) {
-      paths.push(`${prefix}/${item.name}`);
-    } else {
-      paths.push(...(await listStoragePaths(`${prefix}/${item.name}`)));
-    }
-  }
-  return paths;
-}
-
-/**
- * Deletes a share (content + uploaded files) before it expires.
- * Only the sender — who holds the private token — can cancel a share.
- */
-export async function cancelShare(code: string, token: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc("delete_share", { _code: code, _token: token });
-  if (error) throw new Error(error.message || "Failed to cancel share");
-  const deleted = data === true;
-  if (deleted) {
-    // Best-effort cleanup of uploaded files (safe: row is already gone).
-    try {
-      const paths = await listStoragePaths(code);
-      if (paths.length > 0) await supabase.storage.from(BUCKET).remove(paths);
-    } catch {
-      // Orphaned files are unreachable once the row is deleted.
-    }
-  }
-  return deleted;
 }
