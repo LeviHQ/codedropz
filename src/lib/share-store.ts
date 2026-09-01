@@ -149,38 +149,3 @@ export function shareUrl(code: string): string {
     typeof window !== "undefined" ? window.location.origin : "https://codedropz.vercel.app";
   return `${origin}/r/${code}`;
 }
-
-/** Recursively lists every stored object under a folder prefix. */
-async function listStoragePaths(prefix: string): Promise<string[]> {
-  const { data, error } = await supabase.storage.from(BUCKET).list(prefix, { limit: 200 });
-  if (error || !data) return [];
-  const paths: string[] = [];
-  for (const item of data) {
-    if (item.id) {
-      paths.push(`${prefix}/${item.name}`);
-    } else {
-      paths.push(...(await listStoragePaths(`${prefix}/${item.name}`)));
-    }
-  }
-  return paths;
-}
-
-/**
- * Deletes a share (content + uploaded files) before it expires.
- * Only the sender — who holds the private token — can cancel a share.
- */
-export async function cancelShare(code: string, token: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc("delete_share", { _code: code, _token: token });
-  if (error) throw new Error(error.message || "Failed to cancel share");
-  const deleted = data === true;
-  if (deleted) {
-    // Best-effort cleanup of uploaded files (safe: row is already gone).
-    try {
-      const paths = await listStoragePaths(code);
-      if (paths.length > 0) await supabase.storage.from(BUCKET).remove(paths);
-    } catch {
-      // Orphaned files are unreachable once the row is deleted.
-    }
-  }
-  return deleted;
-}
