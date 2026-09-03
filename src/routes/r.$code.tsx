@@ -53,13 +53,16 @@ function SharePage() {
   const [attempt, setAttempt] = useState(0);
   const fetched = useRef(false);
 
-  useEffect(() => {
+useEffect(() => {
+    console.log("[debug] effect run", code, "fetched?", fetched.current);
     if (fetched.current) return;
     fetched.current = true;
     let cancelled = false;
     (async () => {
       try {
+        console.log("[debug] calling retrieveShare", code);
         const r = await retrieveShare(code);
+        console.log("[debug] retrieveShare resolved", code, JSON.stringify(r).slice(0, 120), "cancelled?", cancelled);
         if (cancelled) return;
         if (!r.ok) {
           setState({ status: "error", reason: r.reason });
@@ -72,12 +75,14 @@ function SharePage() {
             expiresAt: r.expiresAt,
           });
         }
+        console.log("[debug] state set");
       } catch (e) {
-        console.error("Failed to retrieve share", e);
+        console.error("[debug] retrieve threw", e);
         if (!cancelled) setState({ status: "error", reason: "failed" });
       }
     })();
     return () => {
+      console.log("[debug] cleanup (cancelled=true)");
       cancelled = true;
     };
   }, [code, attempt]);
@@ -284,6 +289,44 @@ function ReadyCard({
           <ShieldCheck className="size-3.5" style={{ color: "var(--brand)" }} />
           Auto-deletes after last access
         </span>
+</div>
+
+      <div className="flex flex-wrap gap-2 border-b border-border bg-secondary/20 px-5 py-3">
+        {hasText && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => {
+              navigator.clipboard.writeText(content);
+              toast.success("Copied to clipboard");
+            }}
+          >
+            <Copy className="size-4" /> Copy text
+          </Button>
+        )}
+        {hasText && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            onClick={() => saveBlob(new Blob([content], { type: "text/plain" }), "snippet.txt")}
+          >
+            <Download className="size-4" /> Download TXT
+          </Button>
+        )}
+        {(hasFiles || hasText) && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="rounded-lg"
+            onClick={downloadAllZip}
+            disabled={zipping}
+          >
+            <Archive className="size-4" />
+            {zipping ? "Zipping..." : hasFiles && files.length > 1 ? "Download all (.zip)" : "Download as .zip"}
+          </Button>
+        )}
       </div>
 
       <div className="max-h-[55vh] overflow-auto bg-background/50">
@@ -325,44 +368,7 @@ function ReadyCard({
         )}
       </div>
 
-      <div className="border-t border-border p-4 flex flex-wrap gap-2">
-        {hasText && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="rounded-lg"
-            onClick={() => {
-              navigator.clipboard.writeText(content);
-              toast.success("Copied to clipboard");
-            }}
-          >
-            <Copy className="size-4" /> Copy text
-          </Button>
-        )}
-        {hasText && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="rounded-lg"
-            onClick={() => saveBlob(new Blob([content], { type: "text/plain" }), "snippet.txt")}
-          >
-            <Download className="size-4" /> Download TXT
-          </Button>
-        )}
-        {(hasFiles || hasText) && (
-          <Button
-            variant="secondary"
-            size="sm"
-            className="rounded-lg"
-            onClick={downloadAllZip}
-            disabled={zipping}
-          >
-            <Archive className="size-4" />
-            {zipping ? "Zipping..." : hasFiles && files.length > 1 ? "Download all (.zip)" : "Download as .zip"}
-          </Button>
-        )}
-      </div>
-    </div>
+</div>
   );
 }
 
