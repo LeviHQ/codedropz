@@ -53,13 +53,16 @@ function SharePage() {
   const [attempt, setAttempt] = useState(0);
   const fetched = useRef(false);
 
-  useEffect(() => {
+useEffect(() => {
+    console.log("[debug] effect run", code, "fetched?", fetched.current);
     if (fetched.current) return;
     fetched.current = true;
     let cancelled = false;
     (async () => {
       try {
+        console.log("[debug] calling retrieveShare", code);
         const r = await retrieveShare(code);
+        console.log("[debug] retrieveShare resolved", code, JSON.stringify(r).slice(0, 120), "cancelled?", cancelled);
         if (cancelled) return;
         if (!r.ok) {
           setState({ status: "error", reason: r.reason });
@@ -72,12 +75,14 @@ function SharePage() {
             expiresAt: r.expiresAt,
           });
         }
+        console.log("[debug] state set");
       } catch (e) {
-        console.error("Failed to retrieve share", e);
+        console.error("[debug] retrieve threw", e);
         if (!cancelled) setState({ status: "error", reason: "failed" });
       }
     })();
     return () => {
+      console.log("[debug] cleanup (cancelled=true)");
       cancelled = true;
     };
   }, [code, attempt]);
