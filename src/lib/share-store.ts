@@ -14,6 +14,7 @@ export type ShareFile = {
 export type Share = {
   code: string;
   expiresAt: number;
+  senderToken: string;
 };
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -25,6 +26,12 @@ export function generateCode(len = 6): string {
   crypto.getRandomValues(arr);
   for (let i = 0; i < len; i++) out += ALPHABET[arr[i] % ALPHABET.length];
   return out;
+}
+
+function generateToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function sanitizePath(p: string): string {
@@ -47,18 +54,34 @@ async function uploadFiles(code: string, files: File[]): Promise<ShareFile[]> {
   return out;
 }
 
+/** Allowed shape for user-chosen codes. */
+export const CUSTOM_CODE_RE = /^[A-Z0-9]{4,12}$/;
+
+export function normalizeCustomCode(raw: string): string {
+  return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 export async function createShare(input: {
   content: string;
   expirationMinutes: ExpirationMinutes;
   accessLimit: AccessLimit;
   files?: File[];
+  /** Optional user-chosen code. When omitted a random code is generated. */
+  customCode?: string;
 }): Promise<Share> {
   const expiresAtMs = Date.now() + input.expirationMinutes * 60_000;
   const expiresAtIso = new Date(expiresAtMs).toISOString();
+  const senderToken = generateToken();
 
+  const custom = input.customCode ? normalizeCustomCode(input.customCode) : "";
+  if (input.customCode && !CUSTOM_CODE_RE.test(custom)) {
+    throw new Error("Custom code must be 4–12 letters or numbers.");
+  }
+
+  const attempts = custom ? 1 : 5;
   // Retry on rare code collision (PK conflict)
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const code = generateCode();
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const code = custom || generateCode();
 
     let uploaded: ShareFile[] = [];
     if (input.files && input.files.length > 0) {
@@ -71,8 +94,9 @@ export async function createShare(input: {
       expires_at: expiresAtIso,
       access_limit: input.accessLimit,
       files: uploaded as unknown as never,
+      sender_token: senderToken,
     });
-    if (!error) return { code, expiresAt: expiresAtMs };
+    if (!error) return { code, expiresAt: expiresAtMs, senderToken };
 
     // rollback uploaded files on failure
     if (uploaded.length > 0) {
@@ -81,6 +105,9 @@ export async function createShare(input: {
     // 23505 = unique_violation → try a new code
     if ((error as { code?: string }).code !== "23505") {
       throw new Error(error.message || "Failed to create share");
+    }
+    if (custom) {
+      throw new Error(`Code "${custom}" is already in use. Try another one.`);
     }
   }
   throw new Error("Could not generate a unique code, please try again.");
@@ -114,4 +141,11 @@ export async function downloadShareFile(storagePath: string): Promise<Blob> {
   const { data, error } = await supabase.storage.from(BUCKET).download(storagePath);
   if (error || !data) throw new Error(error?.message || "Download failed");
   return data;
+}
+
+/** Absolute URL that opens a share directly (e.g. https://codedropz.vercel.app/r/AB72QK). */
+export function shareUrl(code: string): string {
+  const origin =
+    typeof window !== "undefined" ? window.location.origin : "https://codedropz.vercel.app";
+  return `${origin}/r/${code}`;
 }
