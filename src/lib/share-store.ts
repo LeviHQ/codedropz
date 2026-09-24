@@ -40,15 +40,22 @@ function sanitizePath(p: string): string {
 
 async function uploadFiles(code: string, files: File[]): Promise<ShareFile[]> {
   const out: ShareFile[] = [];
-  for (const f of files) {
+  const batch = generateToken().slice(0, 8);
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
     const rel = sanitizePath((f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name);
-    const storagePath = `${code}/${rel}`;
+    // Storage keys only allow safe ASCII, so store under a neutral key and keep
+    // the real name/path (any language, spaces, brackets, any extension) in metadata.
+    const storagePath = `${code}/${batch}/${i}.bin`;
     const { error } = await supabase.storage.from(BUCKET).upload(storagePath, f, {
       cacheControl: "3600",
-      upsert: false,
-      contentType: f.type || "application/octet-stream",
+      upsert: true,
+      contentType: "application/octet-stream",
     });
-    if (error) throw new Error(`Upload failed for ${rel}: ${error.message}`);
+    if (error) {
+      if (out.length) await supabase.storage.from(BUCKET).remove(out.map((x) => x.storagePath));
+      throw new Error(`Upload failed for ${rel}: ${error.message}`);
+    }
     out.push({ path: rel, storagePath, size: f.size, type: f.type || "application/octet-stream" });
   }
   return out;
