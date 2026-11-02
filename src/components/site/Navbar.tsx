@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Menu, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "./Logo";
 import { ModeToggle, AccentPicker } from "./ThemeControls";
@@ -52,6 +53,13 @@ export function Navbar() {
                 {i.label}
               </a>
             ))}
+            <Link
+              to="/portal"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            >
+              <Sparkles className="size-3.5" style={{ color: "var(--brand)" }} />
+              Portal
+            </Link>
           </div>
 
           <div className="flex items-center gap-1">
@@ -90,6 +98,14 @@ export function Navbar() {
                 {i.label}
               </a>
             ))}
+            <Link
+              to="/portal"
+              onClick={() => setOpen(false)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm hover:bg-accent"
+            >
+              <Sparkles className="size-3.5" style={{ color: "var(--brand)" }} />
+              Portal
+            </Link>
             <div className="flex items-center gap-2 px-2 pt-2 border-t border-border mt-2">
               <ModeToggle />
               <AccentPicker />

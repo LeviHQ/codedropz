@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -25,32 +31,43 @@ const RCodeRoute = RCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/portal': typeof PortalRoute
   '/r/$code': typeof RCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/portal': typeof PortalRoute
   '/r/$code': typeof RCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/portal': typeof PortalRoute
   '/r/$code': typeof RCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/r/$code'
+  fullPaths: '/' | '/portal' | '/r/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/r/$code'
-  id: '__root__' | '/' | '/r/$code'
+  to: '/' | '/portal' | '/r/$code'
+  id: '__root__' | '/' | '/portal' | '/r/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PortalRoute: typeof PortalRoute
   RCodeRoute: typeof RCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PortalRoute: PortalRoute,
   RCodeRoute: RCodeRoute,
 }
 export const routeTree = rootRouteImport
