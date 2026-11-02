@@ -52,17 +52,16 @@ function statusOf(s: { expiresAt: number; accessCount: number; accessLimit: numb
   return "active";
 }
 
-function useCountdown(expiresAt: number, now: number): string {
+function countdownText(expiresAt: number, now: number): string {
   const ms = expiresAt - now;
   if (ms <= 0) return "Expired";
   const totalSec = Math.floor(ms / 1000);
   const d = Math.floor(totalSec / 86400);
   const h = Math.floor((totalSec % 86400) / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (d > 0) return `${d}d ${h}h ${m}m`;
+  if (d > 0) return `${d}d ${h}h`;
   if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(m).padStart(2, "0")}m`;
 }
 
 function formatBytes(n: number) {
@@ -285,19 +284,6 @@ function ShareExplorer({ now }: { now: number }) {
     </div>
   );
 }
-
-// useCountdown is a plain function (not a hook) so it can be called in a map.
-const useCountdownSafe = (expiresAt: number, now: number) => {
-  const ms = expiresAt - now;
-  if (ms <= 0) return "Expired";
-  const totalSec = Math.floor(ms / 1000);
-  const d = Math.floor(totalSec / 86400);
-  const h = Math.floor((totalSec % 86400) / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
-  return `${String(m).padStart(2, "0")}m`;
-};
 
 function StatusBadge({ status }: { status: ShareStatus }) {
   const cfg =
