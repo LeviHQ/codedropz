@@ -261,7 +261,7 @@ function ShareExplorer({ now }: { now: number }) {
                   <StatusBadge status={st} />
                   <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Clock className="size-3.5" />
-                    {st === "expired" ? "Expired" : `Expires in ${useCountdownSafe(s.expiresAt, now)}`}
+                    {st === "expired" ? "Expired" : `Expires in ${countdownText(s.expiresAt, now)}`}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     Views {s.accessCount}/{s.accessLimit}
@@ -387,7 +387,7 @@ function ShareDetail({ code, now, onClose }: { code: string; now: number; onClos
             {detail && <StatusBadge status={statusOf(detail, now)} />}
             {detail && (
               <span className="hidden text-xs text-muted-foreground sm:inline">
-                Views {detail.accessCount}/{detail.accessLimit} · Expires in {useCountdownSafe(detail.expiresAt, now)}
+                Views {detail.accessCount}/{detail.accessLimit} · Expires in {countdownText(detail.expiresAt, now)}
               </span>
             )}
           </div>
