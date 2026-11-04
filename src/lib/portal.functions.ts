@@ -1,8 +1,13 @@
 // Server functions behind the private SDSM portal.
 // The passcode lives in a server-only env var and never ships to the browser.
+// Database reads go through passcode-gated SECURITY DEFINER RPCs
+// (portal_list_shares / portal_get_share) using only the publishable key, so
+// the portal works on any host (Lovable, Vercel) without a service-role key.
 import { createServerFn } from "@tanstack/react-start";
 import { useSession } from "@tanstack/react-start/server";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 type PortalSession = { unlocked?: boolean };
 
@@ -93,43 +98,68 @@ function normalizeFiles(raw: unknown): { meta: PortalFile[]; full: (PortalFile &
   return { meta: full, full };
 }
 
-// Lists every share in the database (newest first). Read-only: it never
-// increments access_count or consumes views — the normal /r/CODE flow does that.
-export const listPortalShares = createServerFn({ method: "GET" }).handler(async (): Promise<PortalShare[]> => {
-  await requirePortal();
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("shares")
-    .select("code, content, created_at, expires_at, access_count, access_limit, files")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message || "Failed to load shares");
-  return (data ?? []).map((row) => {
-    const { meta } = normalizeFiles(row.files);
-    return {
-      code: row.code,
-      createdAt: new Date(row.created_at).getTime(),
-      expiresAt: new Date(row.expires_at).getTime(),
-      accessCount: row.access_count ?? 0,
-      accessLimit: row.access_limit ?? 0,
-      contentLength: (row.content ?? "").length,
-      files: meta,
-    };
+function portalDb() {
+  const url = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"];
+  const key =
+    process.env["SUPABASE_PUBLISHABLE_KEY"] || process.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) {
+    throw new Error(
+      "Missing Supabase environment variables. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or the VITE_ versions) on your host.",
+    );
+  }
+  return createClient<Database>(url, key, {
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
-});
+}
+
+// The RPC verifies the passcode inside the database (SHA-256), so the server
+// just forwards it from the env var. Read-only: it never increments
+// access_count or consumes views — the normal /r/CODE flow does that.
+function requirePortalPasscode(): string {
+  const passcode = process.env["PORTAL_PASSWORD"];
+  if (!passcode) {
+    throw new Error("Portal is not configured: missing PORTAL_PASSWORD on the server.");
+  }
+  return passcode;
+}
+
+// Lists every share in the database (newest first).
+export const listPortalShares = createServerFn({ method: "GET" }).handler(
+  async (): Promise<PortalShare[]> => {
+    await requirePortal();
+    const db = portalDb();
+    const { data, error } = await db.rpc("portal_list_shares", {
+      _passcode: requirePortalPasscode(),
+    });
+    if (error) throw new Error(error.message || "Failed to load shares");
+    return (data ?? []).map((row) => {
+      const { meta } = normalizeFiles(row.files);
+      return {
+        code: row.code,
+        createdAt: new Date(row.created_at).getTime(),
+        expiresAt: new Date(row.expires_at).getTime(),
+        accessCount: row.access_count ?? 0,
+        accessLimit: row.access_limit ?? 0,
+        contentLength: (row.content ?? "").length,
+        files: meta,
+      };
+    });
+  },
+);
 
 // Full detail for one share, including the text content. Still read-only.
 export const getPortalShare = createServerFn({ method: "GET" })
   .inputValidator((data: { code: string }) => data)
   .handler(async ({ data }): Promise<PortalShareDetail | null> => {
     await requirePortal();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = portalDb();
     const code = data.code.trim().toUpperCase();
-    const { data: row, error } = await supabaseAdmin
-      .from("shares")
-      .select("code, content, files, created_at, expires_at, access_count, access_limit")
-      .eq("code", code)
-      .maybeSingle();
+    const { data: rows, error } = await db.rpc("portal_get_share", {
+      _passcode: requirePortalPasscode(),
+      _code: code,
+    });
     if (error) throw new Error(error.message || "Failed to load share");
+    const row = Array.isArray(rows) ? rows[0] : rows;
     if (!row) return null;
     const { full } = normalizeFiles(row.files);
     return {

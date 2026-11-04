@@ -57,6 +57,30 @@ export type Database = {
         Args: { _code: string; _token: string }
         Returns: boolean
       }
+      portal_get_share: {
+        Args: { _code: string; _passcode: string }
+        Returns: {
+          access_count: number
+          access_limit: number
+          code: string
+          content: string
+          created_at: string
+          expires_at: string
+          files: Json
+        }[]
+      }
+      portal_list_shares: {
+        Args: { _passcode: string }
+        Returns: {
+          access_count: number
+          access_limit: number
+          code: string
+          content: string
+          created_at: string
+          expires_at: string
+          files: Json
+        }[]
+      }
       retrieve_share: {
         Args: { _code: string }
         Returns: {
