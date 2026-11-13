@@ -81,59 +81,34 @@ Sender Device                             Recipient Device
 
 
 
-Storage Sanitization: Uploaded files are saved under safe programmatic keys ({code}/{batch}/{index}.bin) to prevent issues with special characters, spaces, or language scripts, while metadata retains original file names and folder structures.
+Storage Sanitization: Uploaded files are saved under safe programmatic keys
+({code}/{batch}/{index}.bin) to prevent issues with special characters,
+spaces, or language scripts, while metadata retains original file names
+and folder structures.
 
+Atomic Verification: The retrieve_share RPC handles access validation
+and counter increments in a single database transaction to prevent
+race conditions or limit bypasses.
 
-Atomic Verification: The retrieve_share RPC handles access validation and counter increments in a single database transaction to prevent race conditions or limit bypasses.
-
-
-No-Login Safety: Public file deletion is disabled at the database policy level; shares cleanup securely through automated lifecycle triggers.
-
-
-
-
-
+No-Login Safety: Public file deletion is disabled at the database
+policy level; shares cleanup securely through automated lifecycle
+triggers.
 
 🚀 Local Development Setup
-
-
 Prerequisites
-
-
-
-
 Node.js 18+ or Bun (recommended)
 
-
 Git
-
-
-
-
 1. Clone the repository
-
-
 git clone https://github.com/LeviHQ/codedropz.git
 cd codedropz
 
-
-
 2. Install dependencies
-
-
 bun install
 # or: npm install
 
-
-
 3. Environment Variables
-
-
-
 Create a .env file in the project root:
-
-
-
 VITE_SUPABASE_URL=your_database_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_publishable_key
 VITE_SUPABASE_PROJECT_ID=your_project_id
@@ -142,67 +117,23 @@ VITE_SUPABASE_PROJECT_ID=your_project_id
 PORTAL_PASSWORD=SDSM
 SESSION_SECRET=your_32_character_session_secret
 
-
-
 4. Run the development server
-
-
 bun dev
 # or: npm run dev
-
-
-
-
 Open http://localhost:8080 in your browser.
 
-
-
-
-
 🚢 Deployment on Vercel
-
-
-
-
 Push your repository to GitHub.
-
-
 Import the project into Vercel.
-
-
 In Settings → Environment Variables, add:
-
-
-
 VITE_SUPABASE_URL
-
-
 VITE_SUPABASE_PUBLISHABLE_KEY
-
-
 PORTAL_PASSWORD
-
-
 SESSION_SECRET
-
-
-
-
-
-
 Deploy!
 
-
-
-
-
-
 📄 License
-
-
-
 Distributed under the MIT License. See LICENSE for more information.
 
 👨‍💻 Author
-
-Developed by Sanjay Mishra (@LeviHQ)
+Developed by Adarsh Jayprakash Mishra (@LeviHQ)
