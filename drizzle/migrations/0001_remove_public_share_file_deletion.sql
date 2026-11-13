@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "anyone can delete share files" ON storage.objects;

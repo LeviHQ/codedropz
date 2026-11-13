@@ -8,6 +8,13 @@
       "when": 1793795669330,
       "tag": "0000_portal_passcode_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794578565906,
+      "tag": "0001_remove_public_share_file_deletion",
+      "breakpoints": true
     }
   ]
 }
