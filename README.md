@@ -4,7 +4,6 @@
 > *Paste. Generate. Share.*
 
 [![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://codedropz.vercel.app)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Built with TanStack](https://img.shields.io/badge/Built%20with-TanStack%20Start-ff4154)](https://tanstack.com)
 
 ---
@@ -131,9 +130,6 @@ VITE_SUPABASE_PUBLISHABLE_KEY
 PORTAL_PASSWORD
 SESSION_SECRET
 Deploy!
-
-📄 License
-Distributed under the MIT License. See LICENSE for more information.
 
 👨‍💻 Author
 Developed by Adarsh Jayprakash Mishra (@LeviHQ)
