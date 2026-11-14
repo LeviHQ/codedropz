@@ -138,6 +138,9 @@ function RootShell({ children }: { children: ReactNode }) {
             __html: `try{var m=localStorage.getItem('cd:mode');var a=localStorage.getItem('cd:accent');var e=document.documentElement;if(m==='light'){e.classList.remove('dark');e.classList.add('light');e.style.colorScheme='light';}else{e.classList.add('dark');e.classList.remove('light');e.style.colorScheme='dark';}e.dataset.accent=a||'orange';}catch(_){}`,
           }}
         />
+
+        {/* Ahrefs Analytics */}
+        <script src="https://analytics.ahrefs.com/analytics.js" data-key="BobJHq+NANGHTtqFiGZRSQ" async></script>
         <HeadContent />
       </head>
       <body>
